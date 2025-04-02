@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Have a Fun</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e5799, #207cca);
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-area {
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .word-display {
+            font-size: 2rem;
+            margin: 30px 0;
+            letter-spacing: 2px;
+            min-height: 60px;
+        }
+
+        .word-input {
+            width: 80%;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .time, .score {
+            font-size: 1.5rem;
+        }
+
+        .button {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .button:hover {
+            background-color: #ff5252;
+            transform: scale(1.05);
+        }
+
+        .settings {
+            margin-top: 20px;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .floating-object {
+            position: absolute;
+            animation: float 3s ease-in-out infinite;
+            opacity: 0.7;
+        }
+
+        .correct {
+            color: #4CAF50;
+        }
+
+        .incorrect {
+            color: #f44336;
+        }
+
+        .particle {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Level backgrounds */
+        .jungle {
+            background: linear-gradient(135deg, #1e5799, #4CAF50);
+        }
+
+        .space {
+            background: linear-gradient(135deg, #0f0c29, #302b63);
+        }
+
+        .ocean {
+            background: linear-gradient(135deg, #0077b6, #00b4d8);
+        }
+
+        .city {
+            background: linear-gradient(135deg, #2d3436, #636e72);
+        }
+    </style>
+</head>
+<body class="jungle">
+    <div class="container">
+        <header>
+            <h1>Fast Fingers Adventure</h1>
+            <p>Type the words as fast as you can!</p>
+        </header>
+
+        <div class="game-area">
+            <div class="floating-object" style="top: 20%; left: 10%; font-size: 2rem;">🍌</div>
+            <div class="floating-object" style="top: 70%; left: 80%; font-size: 2rem;">🐒</div>
+            <div class="floating-object" style="top: 30%; left: 75%; font-size: 2rem;">🌴</div>
+
+            <div class="game-info">
+                <div class="time">Time: <span id="time">60</span>s</div>
+                <div class="score">Score: <span id="score">0</span></div>
+            </div>
+
+            <div class="word-display" id="word-display">Press Start</div>
+            <input type="text" class="word-input" id="word-input" autofocus disabled>
+
+            <button class="button" id="start-btn">Start Game</button>
+
+            <div class="settings">
+                <label for="level">Level:</label>
+                <select id="level">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+
+                <label for="theme">Theme:</label>
+                <select id="theme">
+                    <option value="jungle">Jungle</option>
+                    <option value="space">Space</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="city">City</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game elements
+        const wordDisplay = document.getElementById('word-display');
+        const wordInput = document.getElementById('word-input');
+        const startBtn = document.getElementById('start-btn');
+        const timeDisplay = document.getElementById('time');
+        const scoreDisplay = document.getElementById('score');
+        const levelSelect = document.getElementById('level');
+        const themeSelect = document.getElementById('theme');
+        const body = document.body;
+
+        // Game variables
+        let time = 60;
+        let score = 0;
+        let isPlaying = false;
+        let timer;
+        let currentWord = '';
+        let words = [];
+
+        // Word lists for different levels
+        const wordLists = {
+            easy: ['apple', 'banana', 'cat', 'dog', 'happy', 'sun', 'moon', 'tree', 'water', 'house'],
+            medium: ['elephant', 'giraffe', 'computer', 'keyboard', 'internet', 'adventure', 'mountain', 'ocean', 'sunshine', 'butterfly'],
+            hard: ['extravaganza', 'quintessential', 'magnificent', 'phenomenon', 'exacerbate', 'idiosyncratic', 'juxtaposition', 'labyrinthine', 'obfuscation', 'perspicacious']
+        };
+
+        // Theme settings
+        const themes = {
+            jungle: {
+                className: 'jungle',
+                objects: ['🍌', '🐒', '🌴', '🦁', '🐘']
+            },
+            space: {
+                className: 'space',
+                objects: ['🚀', '👽', '🛸', '🌕', '⭐']
+            },
+            ocean: {
+                className: 'ocean',
+                objects: ['🐠', '🐙', '🐬', '🌊', '🐋']
+            },
+            city: {
+                className: 'city',
+                objects: ['🏙️', '🚗', '🏢', '🚦', '🏍️']
+            }
+        };
+
+        // Initialize game
+        function init() {
+            // Set up event listeners
+            startBtn.addEventListener('click', startGame);
+            wordInput.addEventListener('input', checkMatch);
+            themeSelect.addEventListener('change', changeTheme);
+            
+            // Load initial theme
+            changeTheme();
+        }
+
+        // Start game
+        function startGame() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            score = 0;
+            time = 60;
+            
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = time;
+            
+            wordInput.disabled = false;
+            wordInput.value = '';
+            wordInput.focus();
+            
+            startBtn.textContent = 'Playing...';
+            startBtn.disabled = true;
+            
+            // Load words based on selected level
+            const level = levelSelect.value;
+            words = [...wordLists[level]];
+            
+            // Start timer
+            timer = setInterval(countdown, 1000);
+            
+            // Show first word
+            showNewWord();
+        }
+
+        // Countdown timer
+        function countdown() {
+            time--;
+            timeDisplay.textContent = time;
+            
+            if (time === 0) {
+                endGame();
+            }
+        }
+
+        // Show new random word
+        function showNewWord() {
+            if (words.length === 0) {
+                // If we've used all words, refresh the list
+                const level = levelSelect.value;
+                words = [...wordLists[level]];
+            }
+            
+            const randomIndex = Math.floor(Math.random() * words.length);
+            currentWord = words[randomIndex];
+            wordDisplay.textContent = currentWord;
+            
+            // Remove the word from the array so we don't repeat it
+            words.splice(randomIndex, 1);
+        }
+
+        // Check if typed word matches
+        function checkMatch() {
+            if (wordInput.value === currentWord) {
+                // Correct match
+                wordDisplay.classList.add('correct');
+                setTimeout(() => wordDisplay.classList.remove('correct'), 300);
+                
+                // Create particles
+                createParticles();
+                
+                // Update score
+                score++;
+                scoreDisplay.textContent = score;
+                
+                // Clear input and show new word
+                wordInput.value = '';
+                showNewWord();
+                
+                // Add time bonus
+                time += 2;
+            } else if (currentWord.startsWith(wordInput.value)) {
+                // Partial match
+                wordDisplay.classList.remove('incorrect');
+            } else {
+                // Incorrect
+                wordDisplay.classList.add('incorrect');
+            }
+        }
+
+        // End game
+        function endGame() {
+            clearInterval(timer);
+            isPlaying = false;
+            
+            wordInput.disabled = true;
+            startBtn.textContent = 'Start Game';
+            startBtn.disabled = false;
+            
+            wordDisplay.textContent = 'Game Over! Score: ' + score;
+            
+            // Reset for next game
+            wordInput.value = '';
+        }
+
+        // Change theme
+        function changeTheme() {
+            const theme = themeSelect.value;
+            const themeData = themes[theme];
+            
+            // Remove all theme classes
+            Object.values(themes).forEach(t => {
+                body.classList.remove(t.className);
+            });
+            
+            // Add new theme class
+            body.classList.add(themeData.className);
+            
+            // Clear existing floating objects
+            document.querySelectorAll('.floating-object').forEach(el => {
+                if (!el.classList.contains('static')) {
+                    el.remove();
+                }
+            });
+            
+            // Add new floating objects
+            for (let i = 0; i < 5; i++) {
+                const obj = document.createElement('div');
+                obj.className = 'floating-object';
+                obj.textContent = themeData.objects[Math.floor(Math.random() * themeData.objects.length)];
+                obj.style.top = `${Math.random() * 80 + 10}%`;
+                obj.style.left = `${Math.random() * 80 + 10}%`;
+                obj.style.fontSize = `${Math.random() * 2 + 1.5}rem`;
+                obj.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                document.querySelector('.game-area').appendChild(obj);
+            }
+        }
+
+        // Create particles effect
+        function createParticles() {
+            const rect = wordDisplay.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.width = `${Math.random() * 8 + 4}px`;
+                particle.style.height = particle.style.width;
+                particle.style.backgroundColor = `hsl(${Math.random() * 60 + 100}, 100%, 70%)`;
+                
+                document.body.appendChild(particle);
+                
+                // Animate particle
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * 5 + 2;
+                const xMove = Math.cos(angle) * velocity;
+                const yMove = Math.sin(angle) * velocity;
+                
+                let posX = x;
+                let posY = y;
+                let opacity = 1;
+                
+                const animate = () => {
+                    posX += xMove;
+                    posY += yMove;
+                    opacity -= 0.02;
+                    
+                    particle.style.left = `${posX}px`;
+                    particle.style.top = `${posY}px`;
+                    particle.style.opacity = opacity;
+                    
+                    if (opacity > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        particle.remove();
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // Initialize the game when page loads
+        window.onload = init;
+    </script>
+</body>
+</html>
